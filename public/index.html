@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Аналог — подбор замены лекарства</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;700&display=swap">
+<style>
+  :root {
+    --void:#08080B;
+    --surface:#101015;
+    --surface-2:#16161D;
+    --line:#22222C;
+    --text:#ECECF4;
+    --dim:#8B8B9E;
+    --accent:#A78BFA;
+    --accent-dim:#6D5BA8;
+    --warn:#F5A524;
+    --danger:#FF6B6B;
+    --danger-bg:#2A1214;
+    --ok:#4ADE80;
+
+    --f-display:"Unbounded","Arial Black",sans-serif;
+    --f-body:"Golos Text","Segoe UI",system-ui,sans-serif;
+    --f-mono:"JetBrains Mono",Consolas,monospace;
+  }
+
+  * { box-sizing:border-box; }
+  html, body { margin:0; padding:0; }
+
+  body {
+    background:var(--void);
+    color:var(--text);
+    font-family:var(--f-body);
+    font-size:16px;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+  }
+
+  /* мягкое свечение сверху вместо WebGL — один градиент, ноль джаваскрипта */
+  body::before {
+    content:"";
+    position:fixed; inset:0;
+    background:
+      radial-gradient(60rem 30rem at 50% -10rem, rgba(167,139,250,.16), transparent 70%),
+      radial-gradient(40rem 20rem at 90% 10%, rgba(109,91,168,.10), transparent 70%);
+    pointer-events:none;
+    z-index:0;
+  }
+
+  .shell {
+    position:relative; z-index:1;
+    width:100%; max-width:880px;
+    margin:0 auto;
+    padding:0 20px;
+    flex:1;
+  }
+
+  /* ---------- шапка ---------- */
+  header {
+    display:flex; align-items:center; justify-content:space-between;
+    gap:16px; flex-wrap:wrap;
+    padding:22px 0 0;
+  }
+  .logo {
+    font-family:var(--f-display); font-weight:800;
+    font-size:15px; letter-spacing:.22em; text-transform:uppercase;
+  }
+  .stamp {
+    font-family:var(--f-mono); font-size:10.5px; letter-spacing:.1em;
+    color:var(--dim); text-transform:uppercase;
+  }
+
+  /* ---------- герой ---------- */
+  .hero { padding:clamp(34px,8vw,68px) 0 0; }
+
+  .pill {
+    display:inline-block;
+    font-family:var(--f-mono); font-size:10.5px; font-weight:700;
+    letter-spacing:.18em; text-transform:uppercase;
+    color:var(--accent);
+    border:1px solid var(--accent-dim); border-radius:99px;
+    padding:6px 15px;
+  }
+
+  h1 {
+    font-family:var(--f-display); font-weight:800;
+    font-size:clamp(30px,7.5vw,60px); line-height:1.02;
+    letter-spacing:-.01em; text-transform:uppercase;
+    margin:20px 0 0;
+    min-height:1.02em;
+  }
+  h1 .tail { color:var(--accent); }
+
+  .lede {
+    color:var(--dim); font-size:clamp(15px,2.2vw,17px);
+    max-width:46ch; margin:18px 0 0;
+  }
+
+  /* ---------- поиск ---------- */
+  form { margin:32px 0 0; display:flex; gap:10px; flex-wrap:wrap; }
+  input[type=search] {
+    flex:1 1 260px; min-width:0;
+    background:var(--surface); color:var(--text);
+    border:1px solid var(--line); border-radius:0;
+    padding:15px 17px;
+    font-family:var(--f-body); font-size:16px;
+  }
+  input[type=search]::placeholder { color:#5A5A6B; }
+  input[type=search]:focus-visible {
+    outline:none; border-color:var(--accent);
+    box-shadow:0 0 0 3px rgba(167,139,250,.18);
+  }
+  button {
+    background:var(--accent); color:#14101F;
+    border:none; border-radius:0;
+    padding:15px 26px;
+    font-family:var(--f-mono); font-size:12px; font-weight:700;
+    letter-spacing:.14em; text-transform:uppercase;
+    cursor:pointer;
+  }
+  button:hover { background:#BCA6FF; }
+  button:disabled { opacity:.5; cursor:default; }
+  button:focus-visible { outline:2px solid var(--text); outline-offset:2px; }
+
+  .examples { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+  .examples span {
+    font-family:var(--f-mono); font-size:11.5px;
+    color:var(--dim); background:var(--surface);
+    border:1px solid var(--line); padding:5px 11px; cursor:pointer;
+  }
+  .examples span:hover { color:var(--text); border-color:var(--accent-dim); }
+
+  /* ---------- результат ---------- */
+  #out { margin:38px 0 0; }
+  #out:empty { display:none; }
+
+  .card {
+    background:var(--surface); border:1px solid var(--line);
+    padding:20px 22px; margin-bottom:12px;
+  }
+
+  .drug-brand {
+    font-family:var(--f-display); font-weight:600;
+    font-size:clamp(20px,4vw,27px); line-height:1.15;
+    margin:0;
+  }
+  .drug-meta {
+    font-family:var(--f-mono); font-size:12px; color:var(--dim);
+    margin:8px 0 0; letter-spacing:.04em;
+  }
+  .drug-plain { color:var(--dim); margin:14px 0 0; font-size:15px; }
+
+  .badges { display:flex; flex-wrap:wrap; gap:7px; margin-top:14px; }
+  .badge {
+    font-family:var(--f-mono); font-size:10.5px; font-weight:700;
+    letter-spacing:.1em; text-transform:uppercase;
+    padding:4px 9px; border:1px solid var(--line); color:var(--dim);
+  }
+  .badge.rx { border-color:#4A3E1C; color:var(--warn); }
+  .badge.otc { border-color:#1F4230; color:var(--ok); }
+
+  .section-label {
+    font-family:var(--f-mono); font-size:10.5px; font-weight:700;
+    letter-spacing:.16em; text-transform:uppercase; color:var(--dim);
+    margin:26px 0 10px;
+  }
+
+  /* карточка замены */
+  .alt {
+    display:grid; grid-template-columns:38px 1fr auto;
+    gap:16px; align-items:baseline;
+    background:var(--surface); border:1px solid var(--line);
+    padding:15px 18px; margin-bottom:8px;
+  }
+  .alt-n { font-family:var(--f-mono); font-size:11px; color:var(--accent); }
+  .alt-name { font-weight:600; font-size:16px; }
+  .alt-sub { font-family:var(--f-mono); font-size:11.5px; color:var(--dim); margin-top:3px; }
+  .alt-price { text-align:right; white-space:nowrap; }
+  .alt-month { font-family:var(--f-mono); font-size:16px; font-weight:700; }
+  .alt-save { font-family:var(--f-mono); font-size:11px; color:var(--ok); margin-top:3px; }
+  .alt.is-current { border-color:var(--accent-dim); background:var(--surface-2); }
+  .alt.is-current .alt-save { color:var(--dim); }
+  @media (max-width:520px) {
+    .alt { grid-template-columns:28px 1fr; }
+    .alt-price { grid-column:2; text-align:left; margin-top:8px; }
+  }
+
+  .savings {
+    border:1px solid var(--accent-dim); background:rgba(167,139,250,.07);
+    padding:18px 22px; margin-bottom:12px;
+  }
+  .savings b {
+    display:block; font-family:var(--f-display); font-weight:600;
+    font-size:clamp(22px,5vw,32px); color:var(--accent); line-height:1.1;
+  }
+  .savings span { font-family:var(--f-mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--dim); }
+
+  /* льгота */
+  .reimb { border:1px solid #1F4230; background:rgba(74,222,128,.06); padding:18px 22px; margin-bottom:12px; }
+  .reimb h3 { margin:0 0 8px; font-size:17px; color:var(--ok); }
+  .reimb p { margin:0; color:var(--dim); font-size:14.5px; }
+
+  /* предупреждения */
+  .warn { border:1px solid #4A3E1C; background:rgba(245,165,36,.06); padding:15px 19px; margin-bottom:10px; }
+  .warn b { display:block; font-size:15px; color:var(--warn); margin-bottom:5px; }
+  .warn p { margin:0; font-size:14.5px; color:var(--dim); }
+
+  /* --------- СОСТОЯНИЕ ЗАПРЕТА ---------
+     Здесь всё оформление строгое: без акцентного фиолетового, без анимаций,
+     без цен. Смена тона — сама по себе сообщение. */
+  .blocked {
+    border:2px solid var(--danger); background:var(--danger-bg);
+    padding:24px; margin-bottom:12px;
+  }
+  .blocked .code {
+    font-family:var(--f-mono); font-size:10.5px; font-weight:700;
+    letter-spacing:.16em; color:var(--danger); text-transform:uppercase;
+  }
+  .blocked h2 {
+    font-family:var(--f-body); font-weight:600;
+    font-size:clamp(19px,3.6vw,24px); margin:10px 0 12px; color:#FFDCDA;
+  }
+  .blocked p { margin:0; color:#F0CFCD; font-size:15.5px; line-height:1.65; }
+  .blocked .cta {
+    display:inline-block; margin-top:18px;
+    border:1px solid var(--danger); color:#FFDCDA;
+    font-family:var(--f-mono); font-size:11.5px; font-weight:700;
+    letter-spacing:.12em; text-transform:uppercase; padding:11px 18px;
+  }
+
+  .empty { color:var(--dim); border:1px dashed var(--line); padding:20px 22px; }
+  .empty b { color:var(--text); display:block; margin-bottom:6px; }
+
+  /* ---------- бегущая строка ---------- */
+  .ticker {
+    position:relative; z-index:1;
+    margin-top:56px;
+    border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+    overflow:hidden; padding:11px 0;
+  }
+  .ticker-track {
+    display:inline-flex; gap:34px; white-space:nowrap;
+    font-family:var(--f-mono); font-size:10.5px; letter-spacing:.18em;
+    text-transform:uppercase; color:#4C4C5C;
+    animation:slide 34s linear infinite;
+  }
+  .ticker-track i { font-style:normal; }
+  @keyframes slide { from { transform:translateX(0); } to { transform:translateX(-50%); } }
+
+  footer {
+    position:relative; z-index:1;
+    max-width:880px; margin:0 auto; padding:22px 20px 40px;
+    color:#5A5A6B; font-size:13px;
+  }
+  footer .disclaimer { border-left:2px solid var(--line); padding-left:14px; }
+
+  @media (prefers-reduced-motion:reduce) {
+    .ticker-track { animation:none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <header>
+    <div class="logo">Аналог</div>
+    <div class="stamp" id="stamp">справочник загружается</div>
+  </header>
+
+  <div class="hero">
+    <span class="pill">Подбор замены</span>
+    <h1 data-scramble="Тот же препарат дешевле">Тот же препарат дешевле</h1>
+    <p class="lede">
+      Введите название с упаковки. Покажем зарегистрированные препараты
+      с тем же действующим веществом — и предупредим, если заменять нельзя.
+    </p>
+
+    <form id="form">
+      <input id="q" type="search" placeholder="Например, Нольпаза 40" autocomplete="off" spellcheck="false" aria-label="Название препарата">
+      <button type="submit" id="go">Найти</button>
+    </form>
+
+    <div class="examples" id="examples">
+      <span>Нольпаза 40</span>
+      <span>Эутирокс 50</span>
+      <span>Лизиноприл 10</span>
+      <span>Глюкофаж Лонг 750</span>
+    </div>
+  </div>
+
+  <div id="out" aria-live="polite"></div>
+</div>
+
+<div class="ticker" aria-hidden="true">
+  <div class="ticker-track" id="track"></div>
+</div>
+
+<footer>
+  <p class="disclaimer">
+    Сервис не назначает лечение и не отменяет назначения врача. Показывает
+    справочную информацию о зарегистрированных препаратах с одинаковым
+    действующим веществом. Решение о замене принимает врач или фармацевт.
+  </p>
+</footer>
+
+<script type="module">
+const $ = (s) => document.querySelector(s);
+const out = $('#out');
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+const kzt = (n) => n.toLocaleString('ru-RU') + ' ₸';
+
+/* Скрамбл заголовка: символы перебираются и схлопываются в текст.
+   Тридцать строк вместо WebGL — узнаваемость та же, часов на три меньше. */
+const GLYPHS = 'АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩЭЮЯ/*<>_#0123456789';
+function scramble(el) {
+  const target = el.dataset.scramble;
+  const finish = () => { el.textContent = target; };
+
+  // В фоновой вкладке requestAnimationFrame не вызывается, и заголовок
+  // остался бы набором мусорных символов навсегда. Анимация — украшение,
+  // текст — обязателен, поэтому оба этих случая сразу отдают готовый текст.
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return finish();
+  if (document.visibilityState !== 'visible') return finish();
+
+  // Страховка на всё остальное: что бы ни случилось с кадрами, через
+  // полторы секунды заголовок стоит на месте.
+  const guard = setTimeout(finish, 1500);
+
+  let frame = 0;
+  const queue = [...target].map((ch, i) => ({ ch, end: i * 2 + 14 }));
+  const tick = () => {
+    let done = 0;
+    // Пробелы сохраняем как есть, остальное перебираем: ширина строки
+    // не скачет, и заголовок не выглядит пустым в первый момент.
+    el.textContent = queue.map((q) => {
+      if (frame >= q.end) { done++; return q.ch; }
+      return q.ch === ' ' ? ' ' : GLYPHS[(Math.random() * GLYPHS.length) | 0];
+    }).join('');
+    if (done < queue.length) { frame++; requestAnimationFrame(tick); }
+    else { clearTimeout(guard); finish(); }
+  };
+  tick();
+}
+document.querySelectorAll('[data-scramble]').forEach(scramble);
+
+/* Бегущая строка. Дублируем содержимое, чтобы петля была бесшовной. */
+const WORDS = ['международное непатентованное наименование', 'взаимозаменяемость',
+  'узкий терапевтический диапазон', 'льготное обеспечение', 'цена за курс',
+  'форма выпуска', 'решает врач'];
+$('#track').innerHTML = [...WORDS, ...WORDS].map((w) => `<i>${esc(w)} ·</i>`).join('');
+
+/* Дата снимка и размер справочника — из /api/health, честно и сразу. */
+fetch('/api/health').then((r) => r.json()).then((h) => {
+  $('#stamp').textContent = `${h.catalog.products} наименований · снимок ${h.catalog.snapshot}`;
+}).catch(() => { $('#stamp').textContent = ''; });
+
+$('#examples').addEventListener('click', (e) => {
+  if (e.target.tagName !== 'SPAN') return;
+  $('#q').value = e.target.textContent.trim();
+  $('#form').requestSubmit();
+});
+
+$('#form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const query = $('#q').value.trim();
+  if (!query) return;
+
+  $('#go').disabled = true;
+  out.innerHTML = '<div class="empty">Ищем…</div>';
+
+  try {
+    const found = await (await fetch('/api/search', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ query }),
+    })).json();
+
+    if (!found.matches?.length) return renderNothing(found);
+    if (found.needsClarification) return renderClarify(found);
+    render(await (await fetch('/api/alternatives/' + found.matches[0].productId)).json());
+  } catch {
+    out.innerHTML = '<div class="empty"><b>Не удалось связаться с сервисом</b>Проверьте соединение и попробуйте ещё раз.</div>';
+  } finally {
+    $('#go').disabled = false;
+  }
+});
+
+function renderNothing(r) {
+  out.innerHTML = `<div class="empty"><b>${r.refused ? 'Так подобрать не получится' : 'Не найдено'}</b>${esc(r.reason || '')}</div>`;
+}
+
+function renderClarify(r) {
+  const c = r.needsClarification;
+  out.innerHTML = `<div class="empty"><b>${esc(c.question)}</b>Уточните дозировку в запросе, например: «${esc($('#q').value.trim())} ${esc(c.options[0])}».</div>`;
+}
+
+function render(d) {
+  const p = d.current, s = d.substance;
+  const parts = [];
+
+  parts.push(`
+    <div class="card">
+      <h2 class="drug-brand">${esc(p.brand)}</h2>
+      <p class="drug-meta">${esc(s.inn_ru)} · ${p.strength} ${esc(p.strength_unit)} · ${esc(p.form)} · №${p.pack_size}</p>
+      <div class="badges">
+        <span class="badge ${s.rx_only ? 'rx' : 'otc'}">${s.rx_only ? 'По рецепту' : 'Без рецепта'}</span>
+        <span class="badge">${esc(kzt(p.monthlyCost))} в месяц</span>
+        <span class="badge">${esc(p.manufacturer)}</span>
+      </div>
+      <p class="drug-plain">${esc(s.plain_language)}</p>
+    </div>`);
+
+  /* Запрет. Список замен сюда не попадает — его нет в ответе сервера. */
+  if (d.blocked) {
+    parts.push(`
+      <div class="blocked">
+        <div class="code">${esc(d.blocked.code)} · замена не показана</div>
+        <h2>${esc(d.blocked.title)}</h2>
+        <p>${esc(d.blocked.text)}</p>
+        <div class="cta">${esc(d.blocked.action)}</div>
+      </div>`);
+    if (d.reimbursed) parts.push(reimb(d.reimbursed));
+    out.innerHTML = parts.join('') + snapshotLine(d);
+    return;
+  }
+
+  if (d.reimbursed) parts.push(reimb(d.reimbursed));
+
+  const cheapest = d.alternatives[0];
+  if (cheapest && cheapest.savesKzt > 0) {
+    parts.push(`
+      <div class="savings">
+        <span>Экономия на месяце приёма</span>
+        <b>${esc(kzt(cheapest.savesKzt))}</b>
+        <span>дешевле в ${cheapest.savesTimes} раза · ${esc(cheapest.product.brand)}</span>
+      </div>`);
+  }
+
+  for (const w of d.warnings) {
+    parts.push(`<div class="warn"><b>${esc(w.title)}</b><p>${esc(w.text)}</p></div>`);
+  }
+
+  parts.push('<p class="section-label">Взаимозаменяемые препараты</p>');
+
+  const rows = [
+    { product: p, monthlyCost: p.monthlyCost, current: true },
+    ...d.alternatives.map((a) => ({ ...a, current: false })),
+  ].sort((a, b) => a.monthlyCost - b.monthlyCost);
+
+  rows.forEach((r, i) => {
+    parts.push(`
+      <div class="alt${r.current ? ' is-current' : ''}">
+        <div class="alt-n">${String(i + 1).padStart(2, '0')}</div>
+        <div>
+          <div class="alt-name">${esc(r.product.brand)}${r.current ? ' — ваш' : ''}</div>
+          <div class="alt-sub">${esc(r.product.manufacturer)} · №${r.product.pack_size} · ${esc(kzt(r.product.price_kzt))} за упаковку</div>
+        </div>
+        <div class="alt-price">
+          <div class="alt-month">${esc(kzt(r.monthlyCost))}</div>
+          <div class="alt-save">${r.current ? 'сейчас' : (r.savesKzt > 0 ? '−' + esc(kzt(r.savesKzt)) : 'дороже')}</div>
+        </div>
+      </div>`);
+  });
+
+  if (!d.alternatives.length) {
+    parts.push('<div class="empty">В справочнике нет других препаратов с тем же веществом, дозировкой и формой выпуска.</div>');
+  }
+
+  out.innerHTML = parts.join('') + snapshotLine(d);
+}
+
+const reimb = (r) => `
+  <div class="reimb">
+    <h3>Возможно, вам положено бесплатно</h3>
+    <p>${esc(r.condition)}. ${esc(r.note)}.</p>
+  </div>`;
+
+const snapshotLine = (d) => `
+  <p class="section-label" style="margin-top:20px">
+    Цены — снимок от ${esc(d.snapshot.date)}${d.snapshot.status === 'ЧЕРНОВИК' ? ' · черновые данные' : ''}. Не остатки аптек.
+  </p>`;
+</script>
+</body>
+</html>

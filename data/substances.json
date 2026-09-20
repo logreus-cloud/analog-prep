@@ -1,0 +1,94 @@
+[
+  {
+    "id": "pantoprazole",
+    "inn_ru": "Пантопразол",
+    "atc": "A02BC02",
+    "narrow_therapeutic_index": false,
+    "rx_only": true,
+    "reimbursed": { "eligible": false },
+    "plain_language": "Снижает выработку соляной кислоты в желудке. Назначают при язвенной болезни и рефлюксе."
+  },
+  {
+    "id": "omeprazole",
+    "inn_ru": "Омепразол",
+    "atc": "A02BC01",
+    "narrow_therapeutic_index": false,
+    "rx_only": false,
+    "reimbursed": { "eligible": false },
+    "plain_language": "Снижает кислотность желудочного сока. Один из самых назначаемых препаратов этой группы."
+  },
+  {
+    "id": "amlodipine",
+    "inn_ru": "Амлодипин",
+    "atc": "C08CA01",
+    "narrow_therapeutic_index": false,
+    "rx_only": true,
+    "reimbursed": {
+      "eligible": true,
+      "condition": "при подтверждённой артериальной гипертензии на диспансерном учёте",
+      "note": "уточнить у участкового врача в поликлинике прикрепления"
+    },
+    "plain_language": "Расширяет сосуды и снижает артериальное давление. Принимают длительно, обычно постоянно."
+  },
+  {
+    "id": "lisinopril",
+    "inn_ru": "Лизиноприл",
+    "atc": "C09AA03",
+    "narrow_therapeutic_index": false,
+    "rx_only": true,
+    "reimbursed": {
+      "eligible": true,
+      "condition": "при подтверждённой артериальной гипертензии на диспансерном учёте",
+      "note": "уточнить у участкового врача в поликлинике прикрепления"
+    },
+    "plain_language": "Снижает артериальное давление и разгружает сердце. Курс длительный, отменять самостоятельно нельзя."
+  },
+  {
+    "id": "atorvastatin",
+    "inn_ru": "Аторвастатин",
+    "atc": "C10AA05",
+    "narrow_therapeutic_index": false,
+    "rx_only": true,
+    "reimbursed": {
+      "eligible": true,
+      "condition": "после инфаркта или при ишемической болезни сердца на диспансерном учёте",
+      "note": "уточнить у участкового врача в поликлинике прикрепления"
+    },
+    "plain_language": "Снижает уровень холестерина в крови. Принимают годами, эффект накопительный."
+  },
+  {
+    "id": "metformin",
+    "inn_ru": "Метформин",
+    "atc": "A10BA02",
+    "narrow_therapeutic_index": false,
+    "rx_only": true,
+    "reimbursed": {
+      "eligible": true,
+      "condition": "при сахарном диабете 2 типа на диспансерном учёте",
+      "note": "уточнить у участкового врача в поликлинике прикрепления"
+    },
+    "plain_language": "Снижает уровень сахара в крови при диабете 2 типа. Обычные и пролонгированные формы не взаимозаменяемы."
+  },
+  {
+    "id": "levothyroxine",
+    "inn_ru": "Левотироксин натрия",
+    "atc": "H03AA01",
+    "narrow_therapeutic_index": true,
+    "rx_only": true,
+    "reimbursed": {
+      "eligible": true,
+      "condition": "при гипотиреозе на диспансерном учёте",
+      "note": "уточнить у участкового врача в поликлинике прикрепления"
+    },
+    "plain_language": "Восполняет недостаток гормона щитовидной железы. Доза подбирается врачом по анализам."
+  },
+  {
+    "id": "loratadine",
+    "inn_ru": "Лоратадин",
+    "atc": "R06AX13",
+    "narrow_therapeutic_index": false,
+    "rx_only": false,
+    "reimbursed": { "eligible": false },
+    "plain_language": "Снимает проявления аллергии: зуд, сыпь, насморк. Не вызывает выраженной сонливости."
+  }
+]

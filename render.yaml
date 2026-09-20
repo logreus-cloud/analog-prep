@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: CHANGE-ME
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: DEMO_MODE
+        value: "1"

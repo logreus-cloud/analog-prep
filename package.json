@@ -1,0 +1,15 @@
+{
+  "name": "analog",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node server.js",
+    "smoke": "node scripts/smoke.js",
+    "wake": "node scripts/wake.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
