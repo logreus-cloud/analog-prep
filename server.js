@@ -1,5 +1,6 @@
 import express from 'express';
 import path from 'node:path';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { DEMO_MODE, resolveName } from './lib/llm.js';
 import { search } from './lib/search.js';
@@ -20,7 +21,22 @@ const COMMIT =
   'local';
 
 const app = express();
+
+// Render держит приложение за прокси. Без этого req.protocol всегда 'http',
+// и в og:image на https-странице уедет http-адрес — скрейперы такое отбросят.
+app.set('trust proxy', true);
+
 app.use(express.json({ limit: '64kb' }));
+
+// Главную отдаём через обработчик, а не статикой: в og-тегах нужен абсолютный
+// адрес, а домен известен только в рантайме. Скрейперы мессенджеров не исполняют
+// JavaScript, поэтому подставить его на клиенте нельзя.
+const PAGE = readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8');
+app.get('/', (req, res) => {
+  const base = `${req.protocol}://${req.get('host')}`;
+  res.type('html').send(PAGE.replaceAll('__BASE__', base));
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/api/health', (req, res) => {
