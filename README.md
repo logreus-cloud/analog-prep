@@ -249,7 +249,7 @@ curl http://localhost:3000/api/alternatives/euthyrox-50-100
 | | Участник | Роль |
 |---|---|---|
 | <img src="https://github.com/logreus-cloud.png" width="48"/> | [@logreus-cloud](https://github.com/logreus-cloud) | Сервер, правила, справочник |
-| | @teammate | Интерфейс, деплой, данные |
+| <img src="https://github.com/felorez.png" width="48"/>       | [@felorez](https://github.com/felorez)  | Интерфейс, деплой, данные |
 
 ## 📄 Лицензия
 
