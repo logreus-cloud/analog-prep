@@ -136,6 +136,38 @@
   }
   .examples span:hover { color:var(--text); border-color:var(--accent-dim); }
 
+  .demand {
+    font-family:var(--f-mono); font-size:11px; letter-spacing:.06em;
+    color:#4C4C5C; margin-top:12px;
+  }
+  .demand b { color:var(--dim); font-weight:400; }
+
+  /* кнопка «что спросить у врача» */
+  .ask {
+    display:flex; flex-wrap:wrap; gap:10px; align-items:center;
+    margin-bottom:12px;
+  }
+  .ask button {
+    background:transparent; color:var(--accent);
+    border:1px solid var(--accent-dim); padding:12px 18px;
+  }
+  .ask button:hover { background:rgba(167,139,250,.1); color:var(--text); }
+  .ask .hint { font-size:13.5px; color:var(--dim); }
+  .ask.strict button { color:#FFDCDA; border-color:var(--danger); }
+  .ask.strict button:hover { background:rgba(255,107,107,.12); }
+
+  .qtext {
+    white-space:pre-wrap; background:var(--surface-2); border:1px solid var(--line);
+    padding:16px 18px; margin-bottom:12px; font-size:14.5px; color:var(--text);
+  }
+
+  .didyou { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+  .didyou span {
+    font-family:var(--f-mono); font-size:12px; color:var(--accent);
+    border:1px solid var(--accent-dim); padding:6px 12px; cursor:pointer;
+  }
+  .didyou span:hover { background:rgba(167,139,250,.1); }
+
   /* ---------- результат ---------- */
   #out { margin:38px 0 0; }
   #out:empty { display:none; }
@@ -292,6 +324,8 @@
       <span>Лизиноприл 10</span>
       <span>Глюкофаж Лонг 750</span>
     </div>
+
+    <p class="demand" id="demand" hidden></p>
   </div>
 
   <div id="out" aria-live="polite"></div>
@@ -360,17 +394,48 @@ fetch('/api/health').then((r) => r.json()).then((h) => {
   $('#stamp').textContent = `${h.catalog.products} наименований · снимок ${h.catalog.snapshot}`;
 }).catch(() => { $('#stamp').textContent = ''; });
 
+/* Обезличенный спрос: заполняет пустой экран и показывает, что сервисом
+   пользуются. В ответе только счётчики по веществам — ни запросов, ни времени. */
+function loadDemand() {
+  fetch('/api/stats').then((r) => r.json()).then((s) => {
+    const el = $('#demand');
+    if (!s.top?.length) { el.hidden = true; return; }
+    el.innerHTML = 'Чаще всего ищут: ' + s.top.map((t) => `<b>${esc(t.inn)}</b>`).join(' · ');
+    el.hidden = false;
+  }).catch(() => {});
+}
+loadDemand();
+
 $('#examples').addEventListener('click', (e) => {
   if (e.target.tagName !== 'SPAN') return;
   $('#q').value = e.target.textContent.trim();
   $('#form').requestSubmit();
 });
 
+/* Подсказки «возможно, вы имели в виду» ведут сразу к карточке,
+   минуя повторный поиск: препарат уже определён. */
+out.addEventListener('click', async (e) => {
+  const chip = e.target.closest('.didyou span');
+  if (!chip) return;
+  $('#q').value = chip.textContent.trim();
+  setQueryParam(chip.textContent.trim());
+  show(await (await fetch('/api/alternatives/' + chip.dataset.id)).json());
+});
+
+/* Ссылка-состояние: адрес всегда отражает то, что на экране. Демонстрацию
+   можно открыть по ссылке, не набирая ничего руками. */
+function setQueryParam(query) {
+  const url = new URL(location.href);
+  if (query) url.searchParams.set('q', query); else url.searchParams.delete('q');
+  history.replaceState(null, '', url);
+}
+
 $('#form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const query = $('#q').value.trim();
   if (!query) return;
 
+  setQueryParam(query);
   $('#go').disabled = true;
   out.innerHTML = '<div class="empty">Ищем…</div>';
 
@@ -383,7 +448,7 @@ $('#form').addEventListener('submit', async (e) => {
 
     if (!found.matches?.length) return renderNothing(found);
     if (found.needsClarification) return renderClarify(found);
-    render(await (await fetch('/api/alternatives/' + found.matches[0].productId)).json());
+    show(await (await fetch('/api/alternatives/' + found.matches[0].productId)).json());
   } catch {
     out.innerHTML = '<div class="empty"><b>Не удалось связаться с сервисом</b>Проверьте соединение и попробуйте ещё раз.</div>';
   } finally {
@@ -391,8 +456,20 @@ $('#form').addEventListener('submit', async (e) => {
   }
 });
 
+function show(data) {
+  render(data);
+  loadDemand();
+}
+
 function renderNothing(r) {
-  out.innerHTML = `<div class="empty"><b>${r.refused ? 'Так подобрать не получится' : 'Не найдено'}</b>${esc(r.reason || '')}</div>`;
+  const hint = r.suggestions?.length
+    ? `<div class="didyou">${r.suggestions
+        .map((s) => `<span data-id="${esc(s.productId)}">${esc(s.label)}</span>`)
+        .join('')}</div>`
+    : '';
+  out.innerHTML = `<div class="empty"><b>${r.refused ? 'Так подобрать не получится' : 'Не найдено'}</b>${esc(r.reason || '')}${
+    hint ? '<div style="margin-top:14px;font-size:14px">Возможно, вы имели в виду:</div>' + hint : ''
+  }</div>`;
 }
 
 function renderClarify(r) {
@@ -426,7 +503,9 @@ function render(d) {
         <div class="cta">${esc(d.blocked.action)}</div>
       </div>`);
     if (d.reimbursed) parts.push(reimb(d.reimbursed));
+    parts.push(askBlock(d, true));
     out.innerHTML = parts.join('') + snapshotLine(d);
+    bindAsk(d);
     return;
   }
 
@@ -472,7 +551,43 @@ function render(d) {
     parts.push('<div class="empty">В справочнике нет других препаратов с тем же веществом, дозировкой и формой выпуска.</div>');
   }
 
+  parts.push(askBlock(d, false));
   out.innerHTML = parts.join('') + snapshotLine(d);
+  bindAsk(d);
+}
+
+/* Готовый вопрос врачу. Список аналогов сам по себе оставляет пациента
+   с «и что теперь»; это — следующий шаг, который он может сделать. */
+const askBlock = (d, strict) => `
+  <p class="section-label">Что делать дальше</p>
+  <div class="ask${strict ? ' strict' : ''}">
+    <button type="button" id="ask">Что спросить у врача</button>
+    <span class="hint">${strict
+      ? 'Соберём формулировку, с которой можно прийти на приём'
+      : 'Готовый текст: скопировать и показать врачу'}</span>
+  </div>`;
+
+function bindAsk(d) {
+  const btn = $('#ask');
+  if (!btn) return;
+  btn.addEventListener('click', async () => {
+    let box = document.querySelector('.qtext');
+    if (!box) {
+      box = document.createElement('div');
+      box.className = 'qtext';
+      box.textContent = d.question;
+      btn.closest('.ask').after(box);
+    }
+    try {
+      await navigator.clipboard.writeText(d.question);
+      btn.textContent = 'Скопировано';
+    } catch {
+      // Буфер недоступен (старый браузер, небезопасный контекст) — текст уже
+      // на экране, его можно выделить руками. Молча не падаем.
+      btn.textContent = 'Текст ниже — выделите и скопируйте';
+    }
+    setTimeout(() => { btn.textContent = 'Что спросить у врача'; }, 2500);
+  });
 }
 
 const reimb = (r) => `
@@ -485,6 +600,14 @@ const snapshotLine = (d) => `
   <p class="section-label" style="margin-top:20px">
     Цены — снимок от ${esc(d.snapshot.date)}${d.snapshot.status === 'ЧЕРНОВИК' ? ' · черновые данные' : ''}. Не остатки аптек.
   </p>`;
+
+/* Открытие по ссылке вида ?q=Эутирокс+50 — сразу нужный экран.
+   Так демонстрацию можно раздать ссылками, а не диктовать по буквам. */
+const initial = new URLSearchParams(location.search).get('q');
+if (initial) {
+  $('#q').value = initial;
+  $('#form').requestSubmit();
+}
 </script>
 </body>
 </html>

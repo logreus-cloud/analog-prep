@@ -59,5 +59,25 @@ check('06 отметка о льготе', Boolean(a6.reimbursed?.eligible), a6.
 const r7 = await find('от головы что-нибудь');
 check('07 отказ по симптому', r7.matches.length === 0 && r7.refused === true, r7.reason ?? '');
 
+// 08. Опечатка за пределами порога — не тупик, а «возможно, вы имели в виду».
+// Одиночную опечатку основной поиск проглатывает сам; сюда попадает
+// перестановка букв, где расстояние уже двойка.
+const r8 = await find('норвакс');
+check('08 подсказка на промахе', r8.matches.length === 0 && r8.suggestions?.length > 0,
+  r8.suggestions?.map((s) => s.label).join(', ') || 'подсказок нет');
+
+// 09. Готовый вопрос врачу — и для разрешённой замены, и для запрета.
+check('09 вопрос врачу собран', typeof a1.question === 'string' && a1.question.includes('Пептазол'),
+  `${a1.question?.length ?? 0} символов`);
+check('09 вопрос для запрета другой', a4.question?.includes('узкого терапевтического'),
+  'упоминает причину запрета');
+
+// 10. Статистика обезличена: считаются вещества, не запросы.
+const stats = await get('/api/stats');
+check('10 статистика считает', stats.total > 0 && stats.top.length > 0,
+  stats.top.map((t) => `${t.inn}×${t.count}`).join(', '));
+check('10 в статистике нет текстов запросов', !JSON.stringify(stats).includes('Нольпаза 40'),
+  'только МНН и счётчики');
+
 console.log(failed ? `\n${failed} проверок упало` : '\nвсё зелёное');
 process.exit(failed ? 1 : 0);

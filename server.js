@@ -4,8 +4,10 @@ import { fileURLToPath } from 'node:url';
 import { DEMO_MODE, resolveName } from './lib/llm.js';
 import { search } from './lib/search.js';
 import { alternativesFor } from './lib/safety.js';
-import { describe, product, SNAPSHOT, PRODUCTS, SUBSTANCES } from './lib/catalog.js';
+import { describe, product, substance, SNAPSHOT, PRODUCTS, SUBSTANCES } from './lib/catalog.js';
 import { monthlyCost } from './lib/pricing.js';
+import { questionFor } from './lib/question.js';
+import { record, top, total } from './lib/stats.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -54,8 +56,11 @@ app.post('/api/search', async (req, res) => {
   }
 
   // Отказ — это результат, а не ошибка. Подбор по симптому за границей продукта.
+  // Но тупик — плохой результат, поэтому к отказу прикладываем ближайшие
+  // совпадения: решает пользователь, а не порог уверенности.
   res.json({
     matches: [],
+    suggestions: guess.status === 'refused' ? [] : local.suggestions,
     needsClarification: null,
     refused: guess.status === 'refused',
     reason: guess.reason ?? 'Не удалось распознать название. Проверьте написание на упаковке.',
@@ -80,7 +85,11 @@ app.get('/api/alternatives/:id', (req, res) => {
   const result = alternativesFor(req.params.id);
   if (!result) return res.status(404).json({ error: 'Препарат не найден.' });
 
-  res.json({
+  // Обезличенный счётчик: только идентификатор вещества, без текста запроса,
+  // адреса и времени. Подробности о том, почему именно так, — в lib/stats.js.
+  record(result.substance.id);
+
+  const payload = {
     current: { ...result.current, monthlyCost: monthlyCost(result.current) },
     substance: result.substance,
     blocked: result.blocked,
@@ -88,6 +97,20 @@ app.get('/api/alternatives/:id', (req, res) => {
     alternatives: result.alternatives,
     reimbursed: result.substance.reimbursed?.eligible ? result.substance.reimbursed : null,
     snapshot: SNAPSHOT,
+  };
+
+  res.json({ ...payload, question: questionFor(payload) });
+});
+
+// Агрегат спроса. Отдаётся всем: восстановить по нему отдельное обращение
+// невозможно, потому что в нём нет ничего, кроме счётчиков по веществам.
+app.get('/api/stats', (req, res) => {
+  res.json({
+    total: total(),
+    top: top(3).map(({ substanceId, count }) => ({
+      inn: substance(substanceId)?.inn_ru ?? substanceId,
+      count,
+    })),
   });
 });
 
